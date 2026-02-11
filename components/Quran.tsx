@@ -30,17 +30,17 @@ const Quran: React.FC = () => {
     borderGreen: isDark ? 'border-emerald-600' : 'border-emerald-500',
     
     // Interactive elements
-    buttonPrimary: isDark ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white',
-    buttonSecondary: isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-700',
-    buttonSuccess: isDark ? 'bg-emerald-800 text-white' : 'bg-emerald-600 text-white',
+    buttonPrimary: isDark ? 'bg-amber-600 hover:bg-amber-700 text-white disabled:bg-gray-700 disabled:text-gray-400' : 'bg-amber-500 hover:bg-amber-600 text-white disabled:bg-gray-300 disabled:text-gray-500',
+    buttonSecondary: isDark ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-200 text-slate-700 hover:bg-slate-300',
+    buttonSuccess: isDark ? 'bg-emerald-800 text-white hover:bg-emerald-700' : 'bg-emerald-600 text-white hover:bg-emerald-700',
     
     // Error/alert
     errorBg: isDark ? 'bg-red-900/50 border-red-500' : 'bg-red-50 border-red-300',
     errorText: isDark ? 'text-red-100' : 'text-red-700',
     
-    // Special backgrounds
+    // Special backgrounds - FIXED for consistent dark mode
     quranReaderBg: isDark ? 'bg-slate-900' : 'bg-[#fffbf2]',
-    quranReaderText: isDark ? 'text-slate-200' : 'text-[#1f2937]',
+    quranReaderText: isDark ? 'text-slate-100' : 'text-[#1f2937]',
     quranBorder: isDark ? 'border-amber-700/30' : 'border-[#d97706]',
   });
 
@@ -53,6 +53,9 @@ const Quran: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  // FIX: Add pagination state to prevent audio from stopping
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchSurah = async (id: number) => {
