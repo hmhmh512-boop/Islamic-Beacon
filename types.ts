@@ -65,13 +65,16 @@ export enum AppTab {
   ZAKAT = 'zakat',
   HAJJ = 'hajj',
   PRAYER_TIMES = 'prayer_times',
+  ADHAN = 'adhan', // FIX: New Adhan section
   FORTY_HADITH = 'forty_hadith',
   HISN_ALMUSLIM = 'hisn_almuslim',
   RAMADAN_SPECIAL = 'ramadan_special',
   RAMADAN_DASHBOARD = 'ramadan_dashboard',
   KHATMA_PLANNER = 'khatma_planner',
   TEN_DAYS_SPECIAL = 'ten_days_special',
-  RAMADAN_REMINDERS = 'ramadan_reminders'
+  RAMADAN_REMINDERS = 'ramadan_reminders',
+  TASME_A = 'tasme_a', // FIX: New Tasme'a section for Quran dictation
+  DAILY_WIRD = 'daily_wird' // FIX: New daily Wird section for tracking
 }
 
 export interface Reciter {
@@ -79,15 +82,76 @@ export interface Reciter {
   name: string;
   identifier: string;
   server: string;
+  style?: string; // مثل: تجويد، ترتيل، حدر، إلخ
+  country?: string;
+}
+
+// FIX: New types for page-based display
+export interface QuranPage {
+  pageNumber: number;
+  surahId: number;
+  startAyah: number;
+  endAyah: number;
+  ayahs: QuranAyah[];
+}
+
+export interface QuranAyah {
+  numberInSurah: number;
+  numberInQuran: number;
+  text: string;
+  juzNumber?: number;
+  hizbNumber?: number;
+}
+
+// FIX: Search result type
+export interface SearchResult {
+  type: 'surah' | 'ayah';
+  surahId: number;
+  surahName: string;
+  ayahNumber?: number;
+  ayahText?: string;
+  page?: number;
+}
+
+// FIX: Tasme'a types for dictation feature
+export interface TasmeaSession {
+  id: string;
+  surahId: number;
+  surahName: string;
+  startAyah: number;
+  endAyah: number;
+  userText: string;
+  correctText: string;
+  accuracy: number; // 0-100
+  errors: TasmeaError[];
+  startTime: number;
+  endTime?: number;
+  duration?: number; // in seconds
+}
+
+export interface TasmeaError {
+  position: number;
+  userWord: string;
+  correctWord: string;
+  type: 'spelling' | 'missing' | 'extra';
+}
+
+// FIX: Azkar with audio support
+export interface AzkarItemWithAudio extends AzkarItem {
+  audioUrl?: string;
+  transliteration?: string;
+  meaning?: string;
+  reward?: string;
+  timing?: string;
+  frequency?: string;
 }
 
 export interface AzkarItem {
-  id: number;
-  category: string;
+  id: string;
+  category: string; // Can be: صباح, مساء, النوم, السفر, الشكر, الخوف, عام
   text: string;
   count: number;
-  // مصدر الذكر أو الدعاء (مثلاً: البخاري، مسلم، حصن المسلم...)
-  source?: string;
+  source?: string; // Source reference (e.g., البخاري, مسلم, حصن المسلم)
 }
 
 // نماذج خاصة بالمساعد الذكي (Offline / Online)

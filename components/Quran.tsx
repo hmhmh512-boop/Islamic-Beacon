@@ -4,6 +4,7 @@ import { FULL_SURAHS, RECITERS } from '../constants';
 import { Surah, Reciter } from '../types';
 import { PROPHET_STORIES, getProphetsByAgeGroup } from '../prophet-stories';
 import { useTheme } from '../context/ThemeContext';
+import nativeMediaPlayerService from '../services/nativeMediaPlayerService';
 
 const Quran: React.FC = () => {
   const { theme } = useTheme();
@@ -53,10 +54,11 @@ const Quran: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
-  // FIX: Add pagination state to prevent audio from stopping
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playbackPosition, setPlaybackPosition] = useState<number>(0);
+  const [totalDuration, setTotalDuration] = useState<number>(0);
+  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchSurah = async (id: number) => {
     setLoading(true);
@@ -64,6 +66,7 @@ const Quran: React.FC = () => {
     try {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         setSurahText('يحتاج عرض نص الآيات القرآنية هنا إلى اتصال بالإنترنت لتحميل المصحف من مصدر موثوق، ويمكنك في وضع عدم الاتصال متابعة التلاوة الصوتية أو قراءة المصحف من نسخة ورقية أو تطبيق آخر محفوظ على جهازك.');
+        setTotalPages(1);
         return;
       }
 
@@ -77,41 +80,121 @@ const Quran: React.FC = () => {
         return `<span class="inline-block hover:text-amber-400 transition-colors cursor-pointer">${ayahText}</span> <span class="text-amber-500 font-black text-xl mx-1">﴿${a.numberInSurah}﴾</span>`;
       }).join(' ');
       setSurahText(text);
+      // FIX: Calculate total pages (estimate ~20 verses per page based on screen)
+      const totalVerses = data.data.ayahs.length;
+      setTotalPages(Math.ceil(totalVerses / 20));
     } catch (e) {
       setSurahText("عذراً، تعذر تحميل الآيات حالياً من الخادم البعيد. يرجى التأكد من اتصالك بالإنترنت أو استخدام نسخة المصحف المحفوظة لديك.");
+      setTotalPages(1);
     }
     setLoading(false);
   };
 
-  const handlePlay = (surah: Surah) => {
-    setAudioError(null);
-    const formattedId = surah.id.toString().padStart(3, '0');
-    const url = `${selectedReciter.server}/${selectedReciter.identifier}/${formattedId}.mp3`;
-    
-    if (audioRef.current) {
-      if (isPlaying && selectedSurah?.id === surah.id) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        setSelectedSurah(surah);
-        audioRef.current.src = url;
-        audioRef.current.load();
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => setIsPlaying(true)).catch(e => {
-            console.error(e);
-            setAudioError("خطأ في تحميل الصوت. جرب قارئاً آخر.");
-            setIsPlaying(false);
-          });
-        }
-      }
+  // FIX: Next page navigation - keep audio playing
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
+  // FIX: Previous page navigation - keep audio playing
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePlay = async (surah: Surah) => {
+    try {
+      setAudioError(null);
+      const formattedId = surah.id.toString().padStart(3, '0');
+      const reciterFolder = selectedReciter.folder || selectedReciter.id;
+      const audioAssetPath = `audio/quran/${reciterFolder}/${formattedId}.mp3`;
+      const playerId = `quran-${selectedReciter.id}-${surah.id}`;
+
+      if (isPlaying && selectedSurah?.id === surah.id) {
+        // Stop current playback
+        await nativeMediaPlayerService.stop(playerId);
+        setIsPlaying(false);
+        if (playbackIntervalRef.current) {
+          clearInterval(playbackIntervalRef.current);
+          playbackIntervalRef.current = null;
+        }
+      } else {
+        // Stop any previous playback
+        if (selectedSurah) {
+          const prevPlayerId = `quran-${selectedReciter.id}-${selectedSurah.id}`;
+          await nativeMediaPlayerService.stop(prevPlayerId);
+        }
+
+        if (playbackIntervalRef.current) {
+          clearInterval(playbackIntervalRef.current);
+        }
+
+        setSelectedSurah(surah);
+        
+        // Start new playback with native media player
+        await nativeMediaPlayerService.play(
+          playerId,
+          audioAssetPath,
+          (position, duration) => {
+            setPlaybackPosition(position);
+            setTotalDuration(duration);
+          },
+          () => {
+            // On complete - play next surah automatically
+            setIsPlaying(false);
+            if (playbackIntervalRef.current) {
+              clearInterval(playbackIntervalRef.current);
+              playbackIntervalRef.current = null;
+            }
+            if (surah.id < 114) {
+              const nextSurah = FULL_SURAHS[surah.id];
+              if (nextSurah) {
+                setTimeout(() => handlePlay(nextSurah), 500);
+              }
+            }
+          }
+        );
+
+        setIsPlaying(true);
+
+        // Update progress every 500ms
+        if (playbackIntervalRef.current) {
+          clearInterval(playbackIntervalRef.current);
+        }
+      }
+    } catch (error) {
+      console.error('Audio playback error:', error);
+      setAudioError('خطأ في تشغيل الصوت. تأكد من وجود ملفات الصوت المحلية.');
+      setIsPlaying(false);
+    }
+  };
+
+  const formatTime = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (playbackIntervalRef.current) {
+        clearInterval(playbackIntervalRef.current);
+      }
+      if (selectedSurah && isPlaying) {
+        const playerId = `quran-${selectedReciter.id}-${selectedSurah.id}`;
+        nativeMediaPlayerService.stop(playerId).catch(console.error);
+      }
+    };
+  }, []);
+
   return (
     <div className={`animate-fade-in space-y-4 sm:space-y-5 md:space-y-6 pb-24 w-full ${classes.mainContainer}`}>
-      <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
-      
       {view === 'list' && (
         <>
           <div className={`bg-gradient-to-r ${classes.headerGradient} p-6 sm:p-8 md:p-10 rounded-[2.5rem] ${isDark ? 'text-white' : 'text-slate-900'} shadow-2xl relative overflow-hidden mx-2 sm:mx-3 md:mx-4 ${classes.borderPrimary} border-b-4 sm:border-b-6 md:border-b-8 space-y-3 sm:space-y-4`}>
@@ -203,6 +286,27 @@ const Quran: React.FC = () => {
                   <span className={`text-[9px] sm:text-[10px] ${classes.accentText} font-bold`}>صدق الله العظيم</span>
                 </div>
               )}
+           </div>
+
+           {/* FIX: Add pagination buttons for page navigation */}
+           <div className={`flex items-center justify-between gap-2 sm:gap-3 mx-1 sm:mx-2 md:mx-3 ${classes.stickyBg} backdrop-blur-xl p-3 sm:p-4 rounded-[2rem] shadow-2xl border ${classes.borderAccent} sticky bottom-24 z-40`}>
+             <button 
+               onClick={goToPreviousPage} 
+               disabled={currentPage <= 1}
+               className={`px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-black text-xs sm:text-sm transition-all active:scale-90 ${classes.buttonPrimary}`}
+             >
+               ← الصفحة السابقة
+             </button>
+             <span className={`${classes.primaryText} font-black text-sm sm:text-base`}>
+               الصفحة {currentPage} من {totalPages}
+             </span>
+             <button 
+               onClick={goToNextPage} 
+               disabled={currentPage >= totalPages}
+               className={`px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-black text-xs sm:text-sm transition-all active:scale-90 ${classes.buttonPrimary}`}
+             >
+               الصفحة التالية →
+             </button>
            </div>
         </div>
       )}

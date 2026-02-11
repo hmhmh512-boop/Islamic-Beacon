@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
-import Quran from './components/Quran';
-import Azkar from './components/Azkar';
+import QuranEnhanced from './components/QuranEnhanced';
+import AzkarEnhanced from './components/AzkarEnhanced';
+import DailyWird from './components/DailyWird';
 import SunnahHadith from './components/SunnahHadith';
 import Quiz from './components/Quiz';
 import Assistant from './components/Assistant';
@@ -17,6 +18,9 @@ import RamadanDashboard from './components/RamadanDashboard';
 import KhatmaPlanner from './components/KhatmaPlanner';
 import TenDaysSpecial from './components/TenDaysSpecial';
 import RamadanReminders from './components/RamadanReminders';
+import Tasme_a from './components/Tasme_a';
+import OfflineIndicator from './components/OfflineIndicator';
+import AdhanMode from './components/AdhanMode';
 import { AppTab, User } from './types';
 import { FORTY_HADITH } from './constants';
 import { PROPHET_STORIES } from './prophet-stories';
@@ -41,8 +45,8 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case AppTab.DASHBOARD: return <Dashboard setActiveTab={setActiveTab} />;
-      case AppTab.QURAN: return <Quran />;
-      case AppTab.AZKAR: return <Azkar />;
+      case AppTab.QURAN: return <QuranEnhanced />;
+      case AppTab.AZKAR: return <AzkarEnhanced />;
       case AppTab.HADITH: return <SunnahHadith />;
       case AppTab.QUIZ: return <Quiz />;
       case AppTab.ASSISTANT: return <Assistant />;
@@ -50,6 +54,9 @@ const App: React.FC = () => {
       case AppTab.PRAYER_TIMES: return <PrayerTimes />;
       case AppTab.ZAKAT: return <ZakatCalculator />;
       case AppTab.HAJJ: return <HajjGuide />;
+      case AppTab.TASME_A: return <Tasme_a />;
+      case AppTab.DAILY_WIRD: return <DailyWird />;
+      case AppTab.ADHAN: return <AdhanMode />;
       case AppTab.LOGIN: return <Login onLogin={handleLogin} />;
       
       case AppTab.RAMADAN_SPECIAL: return <RamadanSpecial />;
@@ -78,13 +85,13 @@ const App: React.FC = () => {
         return (
           <div className="space-y-6 animate-fade-in pb-24 px-2">
             <h2 className="text-3xl font-black text-amber-500 quran-text text-center">حصن المسلم</h2>
-            <Azkar forcedCategory="حصن المسلم" />
+            <AzkarEnhanced forcedCategory="حصن المسلم" />
           </div>
         );
 
       case AppTab.STORIES:
         return (
-          <Quran />
+          <QuranEnhanced />
         );
 
       default: return <Dashboard setActiveTab={setActiveTab} />;
@@ -93,6 +100,7 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
+      <OfflineIndicator />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user}>
         {renderContent()}
       </Layout>

@@ -2,14 +2,17 @@
 import React, { useEffect, useState } from 'react';
 import { AZKAR as BUILTIN_AZKAR } from '../constants';
 import { AZKAR_DATABASE, AzkarEntry, searchAzkar, getRandomAzkar } from '../assistant-knowledge-base';
+import { useTheme } from '../context/ThemeContext';
 import ExpandableText from './ExpandableText';
 
 interface AzkarProps {
   forcedCategory?: string;
-  isDark?: boolean;
 }
 
-const Azkar: React.FC<AzkarProps> = ({ forcedCategory, isDark = true }) => {
+const Azkar: React.FC<AzkarProps> = ({ forcedCategory }) => {
+  // FIX: Use theme context instead of prop
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [activeCategory, setActiveCategory] = useState<'morning' | 'evening' | 'sleep' | 'travel' | 'prayer' | 'general' | 'fear' | 'gratitude'>(
     (forcedCategory as any) || 'morning'
   );
@@ -95,7 +98,7 @@ const Azkar: React.FC<AzkarProps> = ({ forcedCategory, isDark = true }) => {
   const categoryConfig = azkarCategories.find(c => c.key === activeCategory);
 
   return (
-    <div className="animate-fade-in space-y-6 sm:space-y-8 pb-32 w-full">
+    <div className={`animate-fade-in space-y-6 sm:space-y-8 pb-32 w-full min-h-screen transition-colors duration-300 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
       {!forcedCategory && (
         <>
           {/* Header Card */}

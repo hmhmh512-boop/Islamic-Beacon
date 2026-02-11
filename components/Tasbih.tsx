@@ -83,21 +83,26 @@ const Tasbih: React.FC = () => {
 
   const playSound = () => {
     if (!soundEnabled) return;
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 1000;
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.1);
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Soft gentle click/tap sound - lower frequency, very short duration
+      oscillator.frequency.value = 400; // Soft frequency
+      oscillator.type = 'sine'; // Smooth wave
+      
+      gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lower volume
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08); // Shorter duration, faster fade
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.08);
+    } catch (e) {
+      console.error('Audio playback error:', e);
+    }
   };
 
   const vibrate = () => {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PRAYER_SUPPLICATIONS, PrayerSupplication } from '../interactive-tools-data';
+import { AdhanNotificationManager, calculateTimeUntilPrayer, savePrayerTimes, loadPrayerTimes, requestNotificationPermission } from '../utils/adhanService';
+import { useTheme } from '../context/ThemeContext';
 
 interface PrayerTimeData {
   name: string;
@@ -11,6 +13,10 @@ interface PrayerTimeData {
 }
 
 const PrayerTimes: React.FC = () => {
+  // FIX: Use theme context for dark mode
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const [times, setTimes] = useState<Record<string, string>>({});
   const [city, setCity] = useState('جاري تحديد موقعك...');
   const [status, setStatus] = useState<'online' | 'offline' | 'loading'>('loading');
@@ -20,6 +26,9 @@ const PrayerTimes: React.FC = () => {
   const [timeUntilNext, setTimeUntilNext] = useState('');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  // FIX: Add adhan manager and notification tracking
+  const adhanManager = useRef<AdhanNotificationManager>(new AdhanNotificationManager());
+  const notificationTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const synth = useRef<SpeechSynthesis | null>(null);
 
   const prayerConfigs: PrayerTimeData[] = [
@@ -33,8 +42,61 @@ const PrayerTimes: React.FC = () => {
   // Load Prayer Times
   useEffect(() => {
     synth.current = window.speechSynthesis;
-    loadPrayerTimes();
+    // FIX: Request notification permission
+    if (notificationsEnabled) {
+      requestNotificationPermission();
+    }
+    loadPrayerTimesFromAPI();
   }, []);
+
+  // FIX: Enhanced prayer times loading with localStorage persistence
+  const loadPrayerTimesFromAPI = async () => {
+    try {
+      // Try to load from localStorage first
+      const savedTimes = loadPrayerTimes();
+      if (savedTimes && savedTimes.times) {
+        setTimes(savedTimes.times);
+        setCity(savedTimes.city || 'موقعك المحفوظ');
+        setStatus('online');
+        updateNextPrayer();
+        return;
+      }
+
+      if (!navigator.onLine) {
+        setStatus('offline');
+        setCity('وضع عدم الاتصال');
+        setDefaultTimes();
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        setCity('القاهرة (افتراضي)');
+        await fetchTimingsByCity('Cairo', 'Egypt');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=4`);
+          const data = await res.json();
+          setTimes(data.data.timings);
+          setCity('موقعك الحالي');
+          setStatus('online');
+          // FIX: Save to localStorage for offline use
+          savePrayerTimes(data.data.timings, 'موقعك الحالي');
+          updateNextPrayer();
+        } catch (e) {
+          await fetchTimingsByCity('Cairo', 'Egypt');
+        }
+      }, async () => {
+        await fetchTimingsByCity('Cairo', 'Egypt');
+      });
+    } catch (e) {
+      setDefaultTimes();
+      setStatus('offline');
+    }
+  };
 
   // Update next prayer timer
   useEffect(() => {
@@ -81,13 +143,15 @@ const PrayerTimes: React.FC = () => {
     }
   };
 
-  const fetchTimingsByCity = async (city: string, country: string) => {
+  const fetchTimingsByCity = async (cityName: string, country: string) => {
     try {
-      const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=4`);
+      const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${cityName}&country=${country}&method=4`);
       const data = await res.json();
       setTimes(data.data.timings);
-      setCity(city);
+      setCity(cityName);
       setStatus('online');
+      // FIX: Save to localStorage for offline use
+      savePrayerTimes(data.data.timings, cityName);
       updateNextPrayer();
     } catch (e) {
       setDefaultTimes();
@@ -125,6 +189,9 @@ const PrayerTimes: React.FC = () => {
         const h = Math.floor(diff / 60);
         const m = diff % 60;
         setTimeUntilNext(`${h} س ${m} د`);
+        
+        // FIX: Setup adhan notification for this prayer
+        setupAdhanNotification(prayer, timeStr);
         foundNext = true;
         break;
       }
@@ -137,6 +204,42 @@ const PrayerTimes: React.FC = () => {
       const h = Math.floor(diff / 60);
       const m = diff % 60;
       setTimeUntilNext(`${h} س ${m} د`);
+      
+      // FIX: Setup adhan notification for next Fajr
+      setupAdhanNotification('Fajr', times.Fajr || '05:00');
+    }
+  };
+
+  // FIX: Setup automatic adhan notification for prayer time
+  const setupAdhanNotification = (prayer: string, prayerTimeStr: string) => {
+    // Clear existing timeout for this prayer
+    if (notificationTimeouts.current.has(prayer)) {
+      clearTimeout(notificationTimeouts.current.get(prayer));
+    }
+
+    // Calculate time until prayer (with 0-second accuracy)
+    const now = new Date();
+    const [hours, minutes] = prayerTimeStr.split(':').map(Number);
+    const prayerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+    
+    if (prayerDate < now) {
+      prayerDate.setDate(prayerDate.getDate() + 1);
+    }
+
+    const timeUntil = prayerDate.getTime() - now.getTime();
+
+    if (timeUntil > 0 && notificationsEnabled) {
+      const timeout = setTimeout(() => {
+        // Trigger adhan
+        if (voiceEnabled && adhanManager.current) {
+          adhanManager.current.playAdhan(5000);
+        }
+        // Show notification
+        const prayerArabic = getPrayerConfig(prayer)?.name || prayer;
+        adhanManager.current?.showNotification(prayerArabic, prayerTimeStr);
+      }, timeUntil);
+
+      notificationTimeouts.current.set(prayer, timeout);
     }
   };
 
@@ -160,9 +263,9 @@ const PrayerTimes: React.FC = () => {
   const selectedSupplication = PRAYER_SUPPLICATIONS.find(s => s.prayer === selectedPrayer.prayer) || PRAYER_SUPPLICATIONS[0];
 
   return (
-    <div className="animate-fade-in space-y-8 pb-32 w-full">
+    <div className={`animate-fade-in space-y-8 pb-32 w-full min-h-screen transition-colors duration-300 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
       {/* Main Prayer Times Card */}
-      <div className="mx-2 rounded-[3rem] p-10 bg-gradient-to-br from-red-950 to-red-900 shadow-2xl border-b-8 border-red-600 relative overflow-hidden">
+      <div className={`mx-2 rounded-[3rem] p-10 shadow-2xl border-b-8 relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-red-950 to-red-900 border-red-600' : 'bg-gradient-to-br from-red-600 to-red-700 border-red-800'}`}>
         <div className="absolute top-4 right-4 text-6xl opacity-10">🕌</div>
 
         {/* Header */}
@@ -321,7 +424,7 @@ const PrayerTimes: React.FC = () => {
             <span>{notificationsEnabled ? '✓' : '✗'}</span>
           </button>
           <button
-            onClick={() => loadPrayerTimes()}
+            onClick={() => loadPrayerTimesFromAPI()}
             className="w-full p-4 rounded-2xl font-black text-sm bg-blue-700 text-white flex items-center justify-center gap-2 hover:bg-blue-600 active:scale-95 transition-all"
           >
             🔄 تحديث المواقيت

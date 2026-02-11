@@ -41,8 +41,9 @@ const Layout: React.FC<LayoutProps> = ({ activeTab, setActiveTab, user, children
     { tab: AppTab.DASHBOARD, icon: '🏠', label: 'الرئيسية', color: 'emerald' },
     { tab: AppTab.QURAN, icon: '📖', label: 'القرآن', color: 'blue' },
     { tab: AppTab.AZKAR, icon: '📿', label: 'الأذكار', color: 'amber' },
-    { tab: AppTab.ASSISTANT, icon: '🕋', label: 'المساعد', color: 'violet' },
-    { tab: AppTab.QUIZ, icon: '🎓', label: 'المسابقات', color: 'rose' }
+    { tab: AppTab.TASME_A, icon: '🎙️', label: 'التسميع', color: 'purple' },
+    { tab: AppTab.ADHAN, icon: '📢', label: 'الأذان', color: 'red' },
+    { tab: AppTab.PRAYER_TIMES, icon: '🕌', label: 'الصلاة', color: 'green' }
   ];
 
   const getDynamicClasses = () => {
