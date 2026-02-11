@@ -1,7 +1,10 @@
 
 import React from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 const HajjGuide: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const steps = [
     {
       title: "1. الإحرام",
@@ -59,21 +62,25 @@ const HajjGuide: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8 animate-slide pb-20">
-      <div className="bg-emerald-950 p-10 rounded-[3rem] text-white border-b-8 border-amber-600">
+    <div className={`space-y-8 animate-slide pb-32 min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+      <div className={`p-10 rounded-[3rem] shadow-2xl border-b-8 ${
+        isDark ? 'bg-emerald-950 border-amber-600 text-white' : 'bg-emerald-700 border-emerald-900 text-white'
+      }`}>
         <h3 className="text-4xl font-black quran-text text-amber-400">دليل الحج والعمرة</h3>
-        <p className="text-xs opacity-80 leading-relaxed">
-          لبيك اللهم حجاً مبروراً وسعياً مشكوراً وذنباً مغفوراً. هذا الدليل المختصر يرافقك خطوة بخطوة من لحظة الإحرام حتى طواف الوداع، ويمكنك الرجوع إليه في أي وقت دون الحاجة لاتصال بالإنترنت.
+        <p className="text-xs opacity-80 leading-relaxed mt-4">
+          لبيك اللهم حجاً مبروراً وسعياً مشكوراً وذنباً مغفوراً. هذا الدليل المختصر يرافقك خطوة بخطوة من لحظة الإحرام حتى طواف الوداع.
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 px-2">
         {steps.map((s, i) => (
-          <div key={i} className="luxury-card p-8 flex items-start gap-6 border-r-[10px] border-emerالد-900 shadow-xl bg-white">
+          <div key={i} className={`p-8 flex items-start gap-6 border-r-[10px] shadow-xl rounded-[2rem] transition-all ${
+            isDark ? 'bg-slate-900 border-emerald-900 text-white' : 'bg-white border-emerald-100 text-slate-900'
+          }`}>
             <span className="text-5xl">{s.icon}</span>
             <div>
-              <h4 className="text-2xl font-black text-emerald-950 mb-3 quran-text">{s.title}</h4>
-              <p className="text-slate-700 font-bold leading-relaxed text-[14px] text-right">
+              <h4 className={`text-2xl font-black mb-3 quran-text ${isDark ? 'text-amber-400' : 'text-emerald-950'}`}>{s.title}</h4>
+              <p className={`font-bold leading-relaxed text-[14px] text-right ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 {s.desc}
               </p>
             </div>
@@ -81,13 +88,15 @@ const HajjGuide: React.FC = () => {
         ))}
       </div>
 
-      <div className="luxury-card p-8 border-r-[10px] border-amber-600 bg-slate-900/90 text-white space-y-4 mx-1">
-        <h4 className="text-2xl font-black text-amber-400 quran-text">وصايا للحاج والمعتمر</h4>
+      <div className={`p-8 border-r-[10px] shadow-xl rounded-[2rem] space-y-4 mx-2 ${
+        isDark ? 'bg-slate-900 border-amber-600 text-white' : 'bg-amber-50 border-amber-300 text-slate-900'
+      }`}>
+        <h4 className={`text-2xl font-black quran-text ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>وصايا للحاج والمعتمر</h4>
         <ul className="space-y-3 text-sm leading-relaxed font-bold">
           {tips.map((tip, index) => (
             <li key={index} className="flex gap-3 items-start">
               <span className="mt-1 text-emerald-400">•</span>
-              <p className="text-slate-100">{tip}</p>
+              <p className={`${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{tip}</p>
             </li>
           ))}
         </ul>

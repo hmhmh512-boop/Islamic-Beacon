@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { DHIKRS, TasbihSession, DhikrConfig } from '../interactive-tools-data';
+import { useTheme } from '../context/ThemeContext';
+import enhancedAudioPlayerService from '../services/enhancedAudioPlayerService';
+import { createClickAudio } from '../services/audioInitService';
 
 interface TasbihState {
   sessions: TasbihSession[];
@@ -10,6 +13,8 @@ interface TasbihState {
 }
 
 const Tasbih: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [count, setCount] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [activeDhikr, setActiveDhikr] = useState<DhikrConfig>(DHIKRS[0]);
@@ -81,27 +86,45 @@ const Tasbih: React.FC = () => {
     }
   }, [activeDhikr, sessions]);
 
-  const playSound = () => {
+  const playSound = async () => {
     if (!soundEnabled) return;
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      // Create click sound dynamically
+      const clickBlob = createClickAudio();
+      const clickUrl = URL.createObjectURL(clickBlob);
+      const clickId = `tasbih-click-${Date.now()}`;
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Soft gentle click/tap sound - lower frequency, very short duration
-      oscillator.frequency.value = 400; // Soft frequency
-      oscillator.type = 'sine'; // Smooth wave
-      
-      gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lower volume
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08); // Shorter duration, faster fade
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.08);
+      await enhancedAudioPlayerService.play(
+        clickId,
+        clickUrl,
+        undefined,
+        () => {
+          enhancedAudioPlayerService.stop(clickId).catch(() => {});
+          URL.revokeObjectURL(clickUrl);
+        }
+      );
     } catch (e) {
-      console.error('Audio playback error:', e);
+      console.warn('Tasbih audio playback error (will continue without sound):', e);
+      // Fall back to web audio if service fails
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 400;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.08);
+      } catch (fallbackError) {
+        console.warn('Web audio fallback also failed:', fallbackError);
+      }
     }
   };
 
@@ -185,31 +208,33 @@ const Tasbih: React.FC = () => {
   const currentStreak = streaks[activeDhikr.text] || 0;
 
   return (
-    <div className="animate-fade-in space-y-8 pb-32 w-full">
+    <div className={`animate-fade-in space-y-8 pb-32 w-full min-h-screen ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
       {/* Main Counter */}
-      <div className="mx-2 rounded-[3rem] p-12 bg-gradient-to-br from-emerald-950 to-emerald-900 shadow-2xl border-b-8 border-emerald-600 relative overflow-hidden">
+      <div className={`mx-2 rounded-[3rem] p-12 shadow-2xl border-b-8 relative overflow-hidden ${
+        isDark ? 'bg-gradient-to-br from-emerald-950 to-emerald-900 border-emerald-600' : 'bg-gradient-to-br from-emerald-600 to-emerald-700 border-emerald-800'
+      }`}>
         <div className="absolute top-4 right-4 text-6xl opacity-10">📿</div>
 
         {/* Dhikr Title */}
         <h2 className="text-4xl font-black quran-text text-center text-amber-400 glow-gold mb-4">
           {activeDhikr.arabic}
         </h2>
-        <p className="text-center text-slate-200 text-sm mb-8 font-bold">
+        <p className={`text-center text-sm mb-8 font-bold ${isDark ? 'text-slate-200' : 'text-emerald-50'}`}>
           {activeDhikr.note}
         </p>
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-          <div className="bg-emerald-800/40 rounded-2xl p-4 border border-emerald-600/30">
-            <p className="text-emerald-300 text-[10px] font-black uppercase">الهدف</p>
+          <div className={`${isDark ? 'bg-emerald-800/40 border-emerald-600/30' : 'bg-white/20 border-white/30'} rounded-2xl p-4 border`}>
+            <p className={`${isDark ? 'text-emerald-300' : 'text-emerald-100'} text-[10px] font-black uppercase`}>الهدف</p>
             <p className="text-amber-400 text-3xl font-black">{target}</p>
           </div>
-          <div className="bg-emerald-800/40 rounded-2xl p-4 border border-emerald-600/30">
-            <p className="text-emerald-300 text-[10px] font-black uppercase">اليوم</p>
+          <div className={`${isDark ? 'bg-emerald-800/40 border-emerald-600/30' : 'bg-white/20 border-white/30'} rounded-2xl p-4 border`}>
+            <p className={`${isDark ? 'text-emerald-300' : 'text-emerald-100'} text-[10px] font-black uppercase`}>اليوم</p>
             <p className="text-amber-400 text-3xl font-black">{todayProgress}</p>
           </div>
-          <div className="bg-emerald-800/40 rounded-2xl p-4 border border-emerald-600/30">
-            <p className="text-emerald-300 text-[10px] font-black uppercase">الإجمالي</p>
+          <div className={`${isDark ? 'bg-emerald-800/40 border-emerald-600/30' : 'bg-white/20 border-white/30'} rounded-2xl p-4 border`}>
+            <p className={`${isDark ? 'text-emerald-300' : 'text-emerald-100'} text-[10px] font-black uppercase`}>الإجمالي</p>
             <p className="text-amber-400 text-3xl font-black">{allTimeTotal}</p>
           </div>
         </div>
@@ -217,10 +242,10 @@ const Tasbih: React.FC = () => {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black text-slate-300 uppercase">تقدم الجلسة</span>
+            <span className={`text-[10px] font-black uppercase ${isDark ? 'text-slate-300' : 'text-emerald-100'}`}>تقدم الجلسة</span>
             <span className="text-[10px] font-black text-amber-300">{Math.round(progressPercentage)}%</span>
           </div>
-          <div className="w-full h-3 bg-emerald-800 rounded-full overflow-hidden border border-emerald-600/50">
+          <div className={`w-full h-3 rounded-full overflow-hidden border ${isDark ? 'bg-emerald-800 border-emerald-600/50' : 'bg-emerald-900/30 border-white/20'}`}>
             <div
               className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300"
               style={{ width: `${progressPercentage}%` }}
@@ -230,13 +255,15 @@ const Tasbih: React.FC = () => {
 
         {/* Main Counter Circle */}
         <div className="flex flex-col items-center justify-center mb-8">
-          <div className="relative w-48 h-48 rounded-full border-8 border-amber-500 bg-emerald-800/50 flex items-center justify-center shadow-2xl mb-6 cursor-pointer active:scale-90 transition-all" onClick={increment}>
+          <div className={`relative w-48 h-48 rounded-full border-8 border-amber-500 flex items-center justify-center shadow-2xl mb-6 cursor-pointer active:scale-90 transition-all ${
+            isDark ? 'bg-emerald-800/50' : 'bg-white/10'
+          }`} onClick={increment}>
             <div className="absolute inset-2 rounded-full border-4 border-amber-400/30"></div>
             <div className="text-center">
               <div className="text-7xl font-black text-amber-400 glow-gold leading-none">
                 {count}
               </div>
-              <div className="text-amber-200 text-sm font-bold mt-2">تسبيحة</div>
+              <div className={`text-sm font-bold mt-2 ${isDark ? 'text-amber-200' : 'text-white'}`}>تسبيحة</div>
             </div>
           </div>
 
@@ -306,7 +333,7 @@ const Tasbih: React.FC = () => {
                 className={`p-4 rounded-2xl transition-all border-b-4 active:scale-95 ${
                   isActive
                     ? 'bg-emerald-700 border-emerald-900 text-white scale-105 shadow-xl'
-                    : 'bg-slate-800 border-slate-900 text-slate-300 hover:bg-slate-700'
+                    : isDark ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-600'
                 }`}
               >
                 <div className="text-3xl mb-2">{dhikr.emoji}</div>

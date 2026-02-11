@@ -25,7 +25,23 @@ const PrayerTimes: React.FC = () => {
   const [nextPrayer, setNextPrayer] = useState<string>('');
   const [timeUntilNext, setTimeUntilNext] = useState('');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('adhan_notifications_enabled');
+    return saved === null ? true : saved === 'true';
+  });
+  const [adhanEnabled, setAdhanEnabled] = useState(() => {
+    const saved = localStorage.getItem('adhan_enabled_v2');
+    return saved === null ? false : saved === 'true';
+  });
+
+  // Save settings
+  useEffect(() => {
+    localStorage.setItem('adhan_notifications_enabled', notificationsEnabled.toString());
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('adhan_enabled_v2', adhanEnabled.toString());
+  }, [adhanEnabled]);
   // FIX: Add adhan manager and notification tracking
   const adhanManager = useRef<AdhanNotificationManager>(new AdhanNotificationManager());
   const notificationTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -231,7 +247,7 @@ const PrayerTimes: React.FC = () => {
     if (timeUntil > 0 && notificationsEnabled) {
       const timeout = setTimeout(() => {
         // Trigger adhan
-        if (voiceEnabled && adhanManager.current) {
+        if (voiceEnabled && adhanManager.current && adhanEnabled) {
           adhanManager.current.playAdhan(5000);
         }
         // Show notification
@@ -263,19 +279,19 @@ const PrayerTimes: React.FC = () => {
   const selectedSupplication = PRAYER_SUPPLICATIONS.find(s => s.prayer === selectedPrayer.prayer) || PRAYER_SUPPLICATIONS[0];
 
   return (
-    <div className={`animate-fade-in space-y-8 pb-32 w-full min-h-screen transition-colors duration-300 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <div className={`animate-fade-in space-y-8 pb-32 w-full min-h-screen transition-colors duration-300 ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       {/* Main Prayer Times Card */}
-      <div className={`mx-2 rounded-[3rem] p-10 shadow-2xl border-b-8 relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-red-950 to-red-900 border-red-600' : 'bg-gradient-to-br from-red-600 to-red-700 border-red-800'}`}>
+      <div className={`mx-2 rounded-[3rem] p-10 shadow-2xl border-b-8 relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-red-950 to-red-900 border-red-600' : 'bg-gradient-to-br from-red-600 to-red-500 border-red-700'} text-white`}>
         <div className="absolute top-4 right-4 text-6xl opacity-10">🕌</div>
 
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-4xl font-black quran-text text-amber-400 glow-gold mb-2">مواقيت الصلاة</h2>
-          <p className="text-slate-300 text-[10px] font-black uppercase">{city}</p>
+          <p className="text-slate-100 text-[10px] font-black uppercase">{city}</p>
           <div className={`inline-block mt-2 px-4 py-1 rounded-full text-[9px] font-black ${
             status === 'online'
-              ? 'bg-emerald-600/30 text-emerald-300'
-              : 'bg-red-600/30 text-red-300'
+              ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/30'
+              : 'bg-red-500/30 text-red-300 border border-red-400/30'
           }`}>
             {status === 'online' ? '✓ متصل' : '⚠️ بدون اتصال'}
           </div>
@@ -283,10 +299,10 @@ const PrayerTimes: React.FC = () => {
 
         {/* Next Prayer Alert */}
         {nextPrayer && (
-          <div className="bg-red-800/40 border border-red-600/50 rounded-2xl p-4 mb-6">
-            <p className="text-[10px] text-red-300 font-black uppercase mb-2">⏰ الصلاة القادمة</p>
+          <div className="bg-black/20 border border-white/10 rounded-2xl p-4 mb-6 backdrop-blur-sm">
+            <p className="text-[10px] text-red-200 font-black uppercase mb-1">⏰ الصلاة القادمة</p>
             <p className="text-amber-300 font-black text-xl">{getPrayerConfig(nextPrayer).name}</p>
-            <p className="text-slate-200 text-[10px] mt-2">{times[nextPrayer]} - متبقي: {timeUntilNext}</p>
+            <p className="text-slate-200 text-[10px] mt-1">{times[nextPrayer]} - متبقي: {timeUntilNext}</p>
           </div>
         )}
 
@@ -305,22 +321,20 @@ const PrayerTimes: React.FC = () => {
                     setShowSupplication(true);
                   }
                 }}
-                className={`p-4 rounded-2xl border-b-4 transition-all active:scale-95 ${
+                className={`p-4 rounded-2xl border-b-4 transition-all active:scale-95 flex items-center justify-between ${
                   isNext
-                    ? 'bg-red-700 border-red-900 shadow-lg scale-105'
-                    : 'bg-red-800/40 border-red-700/30 hover:bg-red-800/60'
+                    ? 'bg-amber-600 border-amber-800 shadow-lg scale-[1.02]'
+                    : 'bg-black/20 border-white/5 hover:bg-black/30'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{prayer.icon}</span>
-                    <div className="text-left">
-                      <p className="text-amber-300 font-black">{prayer.name}</p>
-                      {isNext && <p className="text-[8px] text-red-200">الصلاة القادمة 🔔</p>}
-                    </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{prayer.icon}</span>
+                  <div className="text-right">
+                    <p className={`font-black ${isNext ? 'text-white' : 'text-amber-400'}`}>{prayer.name}</p>
+                    {isNext && <p className="text-[8px] text-amber-100">يحين وقتها قريباً</p>}
                   </div>
-                  <p className="text-3xl font-black text-amber-400">{prayerTime}</p>
                 </div>
+                <p className="text-2xl font-black text-white">{prayerTime}</p>
               </button>
             );
           })}
@@ -329,48 +343,31 @@ const PrayerTimes: React.FC = () => {
 
       {/* Supplication Card */}
       {showSupplication && (
-        <div className="mx-2 rounded-[3rem] p-10 bg-gradient-to-br from-emerald-950 to-emerald-900 shadow-2xl border-b-8 border-emerald-600 space-y-6">
+        <div className={`mx-2 rounded-[3rem] p-8 shadow-2xl border-b-8 space-y-6 ${isDark ? 'bg-emerald-950 border-emerald-600' : 'bg-emerald-600 border-emerald-800'} text-white`}>
           <div className="flex items-center justify-between">
             <h3 className="text-2xl font-black quran-text text-amber-400">دعاء {selectedSupplication.nameArabic}</h3>
             <button
               onClick={() => setShowSupplication(false)}
-              className="text-slate-400 hover:text-white text-2xl"
+              className="text-emerald-200 hover:text-white text-2xl"
             >
               ✕
             </button>
           </div>
 
-          {/* Supplication Text */}
-          <div className="bg-emerald-800/40 border border-emerald-600/50 rounded-2xl p-6 space-y-4">
-            <div>
-              <p className="text-[10px] text-emerald-300 font-black uppercase mb-2">📖 الدعاء بالعربية:</p>
-              <p className="text-amber-100 font-bold text-lg quran-text leading-relaxed">{selectedSupplication.dua}</p>
-            </div>
-
-            {selectedSupplication.transliteration && (
-              <div>
-                <p className="text-[10px] text-emerald-300 font-black uppercase mb-2">🔤 التشكيل:</p>
-                <p className="text-slate-300 text-[10px] font-bold leading-relaxed">{selectedSupplication.transliteration}</p>
-              </div>
-            )}
-
-            <div>
-              <p className="text-[10px] text-emerald-300 font-black uppercase mb-2">⏰ وقت الدعاء:</p>
-              <p className="text-slate-200 text-sm font-bold">{selectedSupplication.timing}</p>
-            </div>
-
+          <div className="bg-black/20 border border-white/10 rounded-2xl p-6 space-y-4">
+            <p className="text-amber-100 font-bold text-lg quran-text leading-relaxed text-right">{selectedSupplication.dua}</p>
+            
             {selectedSupplication.reward && (
-              <div className="bg-emerald-800/30 rounded-lg p-3 border border-emerald-600/30">
-                <p className="text-[10px] text-emerald-300 font-black uppercase mb-1">🏆 الثواب والفضل:</p>
-                <p className="text-amber-200 text-sm font-bold">{selectedSupplication.reward}</p>
+              <div className="bg-emerald-800/30 rounded-lg p-3 border border-emerald-500/30">
+                <p className="text-[10px] text-emerald-300 font-black uppercase mb-1">الثواب والفضل:</p>
+                <p className="text-amber-200 text-xs font-bold leading-relaxed">{selectedSupplication.reward}</p>
               </div>
             )}
           </div>
 
-          {/* Voice Button */}
           <button
             onClick={() => speakSupplication(selectedSupplication.dua)}
-            className="w-full p-4 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+            className="w-full p-4 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
           >
             🔊 استمع للدعاء
           </button>
@@ -379,8 +376,8 @@ const PrayerTimes: React.FC = () => {
 
       {/* Supplication Tabs */}
       <div className="mx-2 space-y-3">
-        <h3 className="text-xl font-black text-amber-400 px-4">📿 أدعية الصلوات</h3>
-        <div className="px-2 space-y-3">
+        <h3 className={`text-xl font-black px-4 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>📿 أدعية الصلوات</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
           {PRAYER_SUPPLICATIONS.map((supp, idx) => (
             <button
               key={idx}
@@ -388,7 +385,9 @@ const PrayerTimes: React.FC = () => {
                 setSelectedPrayer(supp);
                 setShowSupplication(true);
               }}
-              className="w-full p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-black text-sm transition-all active:scale-95 flex items-center justify-between"
+              className={`p-4 rounded-2xl font-black text-sm transition-all active:scale-95 flex items-center justify-between border ${
+                isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+              } shadow-md`}
             >
               <span>{supp.nameArabic}</span>
               <span className="text-xl">→</span>
@@ -399,14 +398,14 @@ const PrayerTimes: React.FC = () => {
 
       {/* Settings */}
       <div className="mx-2 space-y-3">
-        <h3 className="text-xl font-black text-amber-400 px-4">⚙️ الإعدادات</h3>
-        <div className="space-y-2 px-2">
+        <h3 className={`text-xl font-black px-4 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>⚙️ الإعدادات</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
           <button
             onClick={() => setVoiceEnabled(!voiceEnabled)}
-            className={`w-full p-4 rounded-2xl font-black text-sm flex items-center justify-between ${
+            className={`p-4 rounded-2xl font-black text-sm flex items-center justify-between transition-all active:scale-95 ${
               voiceEnabled
-                ? 'bg-emerald-700 text-white'
-                : 'bg-slate-800 text-slate-400'
+                ? 'bg-emerald-600 text-white'
+                : (isDark ? 'bg-slate-900 text-slate-500 border-slate-800' : 'bg-slate-200 text-slate-500 border-slate-300') + ' border'
             }`}
           >
             <span>🔊 تفعيل الصوت</span>
@@ -414,18 +413,29 @@ const PrayerTimes: React.FC = () => {
           </button>
           <button
             onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            className={`w-full p-4 rounded-2xl font-black text-sm flex items-center justify-between ${
+            className={`p-4 rounded-2xl font-black text-sm flex items-center justify-between transition-all active:scale-95 ${
               notificationsEnabled
-                ? 'bg-emerald-700 text-white'
-                : 'bg-slate-800 text-slate-400'
+                ? 'bg-emerald-600 text-white'
+                : (isDark ? 'bg-slate-900 text-slate-500 border-slate-800' : 'bg-slate-200 text-slate-500 border-slate-300') + ' border'
             }`}
           >
             <span>🔔 الإشعارات</span>
             <span>{notificationsEnabled ? '✓' : '✗'}</span>
           </button>
           <button
+            onClick={() => setAdhanEnabled(!adhanEnabled)}
+            className={`p-4 rounded-2xl font-black text-sm flex items-center justify-between transition-all active:scale-95 ${
+              adhanEnabled
+                ? 'bg-emerald-600 text-white'
+                : (isDark ? 'bg-slate-900 text-slate-500 border-slate-800' : 'bg-slate-200 text-slate-500 border-slate-300') + ' border'
+            }`}
+          >
+            <span>🔊 تشغيل الأذان؟</span>
+            <span className="text-lg">{adhanEnabled ? '✓ نعم' : '✗ لا'}</span>
+          </button>
+          <button
             onClick={() => loadPrayerTimesFromAPI()}
-            className="w-full p-4 rounded-2xl font-black text-sm bg-blue-700 text-white flex items-center justify-center gap-2 hover:bg-blue-600 active:scale-95 transition-all"
+            className="p-4 rounded-2xl font-black text-sm bg-blue-600 text-white flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-md"
           >
             🔄 تحديث المواقيت
           </button>
@@ -433,20 +443,14 @@ const PrayerTimes: React.FC = () => {
       </div>
 
       {/* Prayer Info */}
-      <div className="mx-2 bg-slate-800/50 rounded-2xl p-6 space-y-4">
-        <h3 className="text-amber-400 font-black">📖 معلومات الصلاة</h3>
-        <div className="space-y-3 text-[10px] text-slate-300 leading-relaxed font-bold">
+      <div className={`mx-2 rounded-[2rem] p-6 space-y-4 shadow-xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <h3 className={`${isDark ? 'text-amber-400' : 'text-amber-600'} font-black`}>📖 فضل الصلاة</h3>
+        <div className={`space-y-3 text-[11px] leading-relaxed font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
           <p>
-            <span className="text-amber-400 font-black">🕌 الحكمة:</span> {' '}
-            الصلاة عماد الدين وهي الركن الثاني من أركان الإسلام، والمقصود من الصلاة هو التضرع والخضوع والقرب من الله تعالى وتنقية النفس من الذنوب والآثام.
+            <span className="text-amber-500 font-black">🕌 عماد الدين:</span> الصلاة هي الركن الثاني من أركان الإسلام وصلة العبد بخالقه.
           </p>
           <p>
-            <span className="text-amber-400 font-black">⏰ الأوقات:</span> {' '}
-            حددت الصلوات الخمس في أوقات معينة تبدأ من طلوع الفجر وتنتهي بدخول الليل، وكل وقت له حكمة شرعية وفوائد روحية وصحية.
-          </p>
-          <p>
-            <span className="text-amber-400 font-black">💪 الفضل:</span> {' '}
-            قال الله تعالى: (إِنَّ الصَّلَاةَ تَنْهَىٰ عَنِ الْفَحْشَاءِ وَالْمُنكَرِ)، والصلاة تجلب بركة في الوقت والرزق وتطهر من الخطايا.
+            <span className="text-amber-500 font-black">🌅 راحة النفس:</span> قال النبي ﷺ: "وجعلت قرة عيني في الصلاة".
           </p>
         </div>
       </div>

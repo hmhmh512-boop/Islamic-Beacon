@@ -4,7 +4,7 @@ import { FULL_SURAHS, RECITERS } from '../constants';
 import { Surah, Reciter } from '../types';
 import { PROPHET_STORIES, getProphetsByAgeGroup } from '../prophet-stories';
 import { useTheme } from '../context/ThemeContext';
-import nativeMediaPlayerService from '../services/nativeMediaPlayerService';
+import enhancedAudioPlayerService from '../services/enhancedAudioPlayerService';
 
 const Quran: React.FC = () => {
   const { theme } = useTheme();

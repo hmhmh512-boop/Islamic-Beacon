@@ -46,6 +46,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     try {
       localStorage.setItem('app_theme', theme);
+      localStorage.setItem('noor_theme_mode', theme);
+      document.documentElement.setAttribute('data-noor-theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     } catch (e) {
       console.warn('Failed to save theme preference');
     }

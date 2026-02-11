@@ -4,8 +4,11 @@ import { QUIZ_POOL } from '../constants';
 import { QuizQuestion } from '../types';
 import { generateSmartQuiz } from '../geminiService';
 import { WORSHIP_QUIZZES, WorshipQuiz } from '../daily-missions';
+import { useTheme } from '../context/ThemeContext';
 
 const Quiz: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [mode, setMode] = useState<'selection' | 'playing' | 'worship'>('selection');
   const [quizType, setQuizType] = useState<'classic' | 'ai' | 'worship'>('classic');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -135,8 +138,8 @@ const Quiz: React.FC = () => {
 
   if (mode === 'selection') {
     return (
-      <div className="animate-fade-in space-y-8 pb-24 px-2">
-        <div className="theme-gradient-header p-12 rounded-[3rem] text-center text-white border-b-8 border-amber-600 shadow-2xl relative overflow-hidden">
+      <div className={`animate-fade-in space-y-8 pb-24 px-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+        <div className={`${isDark ? 'bg-gradient-to-br from-red-900 via-red-950 to-slate-950' : 'theme-gradient-header'} p-12 rounded-[3rem] text-center text-white border-b-8 border-amber-600 shadow-2xl relative overflow-hidden`}>
           <h2 className="text-4xl font-black quran-text text-amber-400 glow-gold mb-4">المسابقات الملكية</h2>
           <p className="text-xs font-bold opacity-70 tracking-widest uppercase">ميدان العلم والمعرفة</p>
           <span className="absolute -bottom-4 -left-4 text-9xl opacity-10">🏆</span>
@@ -145,34 +148,34 @@ const Quiz: React.FC = () => {
         <div className="grid gap-6">
           <button 
             onClick={startAIQuiz}
-            className="bg-slate-900 p-8 rounded-[2.5rem] border-2 border-amber-500/30 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl hover:border-amber-400"
+            className={`${isDark ? 'bg-slate-900 border-amber-500/30' : 'bg-white border-amber-200'} p-8 rounded-[2.5rem] border-2 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl hover:border-amber-400`}
           >
             <span className="text-5xl">⚡</span>
             <div className="text-center">
-              <h4 className="text-xl font-black text-amber-400">تحدي الذكاء السريع</h4>
-              <p className="text-[10px] text-slate-400 font-bold mt-1">أسئلة متجددة بذكاء Gemini (5 أسئلة)</p>
+              <h4 className="text-xl font-black text-amber-500">تحدي الذكاء السريع</h4>
+              <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold mt-1`}>أسئلة متجددة بذكاء Gemini (5 أسئلة)</p>
             </div>
           </button>
 
           <button 
             onClick={startClassicQuiz}
-            className="bg-emerald-950 p-8 rounded-[2.5rem] border-2 border-emerald-500/30 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl hover:border-emerald-400"
+            className={`${isDark ? 'bg-emerald-950 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'} p-8 rounded-[2.5rem] border-2 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl hover:border-emerald-400`}
           >
             <span className="text-5xl">🏛️</span>
             <div className="text-center">
-              <h4 className="text-xl font-black text-emerald-400">تحدي التراث الكلاسيكي</h4>
-              <p className="text-[10px] text-slate-400 font-bold mt-1">من بنك الأسئلة المعتمد (10 أسئلة)</p>
+              <h4 className="text-xl font-black text-emerald-600">تحدي التراث الكلاسيكي</h4>
+              <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold mt-1`}>من بنك الأسئلة المعتمد (10 أسئلة)</p>
             </div>
           </button>
 
           <button 
             onClick={startWorshipQuiz}
-            className="bg-rose-950 p-8 rounded-[2.5rem] border-2 border-rose-500/30 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl hover:border-rose-400"
+            className={`${isDark ? 'bg-rose-950 border-rose-500/30' : 'bg-rose-50 border-rose-200'} p-8 rounded-[2.5rem] border-2 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl hover:border-rose-400`}
           >
             <span className="text-5xl">🕌</span>
             <div className="text-center">
-              <h4 className="text-xl font-black text-rose-400">مسابقات العبادة</h4>
-              <p className="text-[10px] text-slate-400 font-bold mt-1">أسئلة عن الصلاة والصيام والعبادات (10 أسئلة)</p>
+              <h4 className="text-xl font-black text-rose-600">مسابقات العبادة</h4>
+              <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold mt-1`}>أسئلة عن الصلاة والصيام والعبادات (10 أسئلة)</p>
             </div>
           </button>
         </div>
@@ -186,10 +189,10 @@ const Quiz: React.FC = () => {
       : score >= (questions.length * 5);
     
     return (
-      <div className="bg-slate-900 rounded-[3.5rem] p-12 shadow-2xl text-center flex flex-col items-center animate-bounce-in border-t-8 border-amber-500 border-b-8 mx-2 mt-10">
+      <div className={`${isDark ? 'bg-slate-900' : 'bg-white'} rounded-[3.5rem] p-12 shadow-2xl text-center flex flex-col items-center animate-bounce-in border-t-8 border-amber-500 border-b-8 mx-2 mt-10`}>
         <div className="text-8xl mb-6">{isWin ? '🎖️' : '🕯️'}</div>
         <h2 className="text-4xl font-black text-amber-500 mb-2 quran-text">{isWin ? 'إنجاز ملكي!' : 'حاول مجدداً'}</h2>
-        <p className="text-white mb-8 font-black text-2xl">لقد حصلت على <span className="text-amber-400 text-4xl">{score}</span> نقطة</p>
+        <p className={`${isDark ? 'text-white' : 'text-slate-900'} mb-8 font-black text-2xl`}>لقد حصلت على <span className="text-amber-400 text-4xl">{score}</span> نقطة</p>
         
         <button 
           onClick={() => setMode('selection')}
@@ -208,7 +211,7 @@ const Quiz: React.FC = () => {
 
     return (
       <div className="space-y-8 animate-fade-in pb-32 px-2">
-        <div className="flex justify-between items-center bg-black/20 p-5 rounded-2xl border border-white/5">
+        <div className={`flex justify-between items-center ${isDark ? 'bg-black/20' : 'bg-slate-100'} p-5 rounded-2xl border ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
           <div className="flex items-center gap-3">
             <span className="text-xs font-black text-rose-500">س {currentIndex + 1} / {worshipQuestions.length}</span>
             <div className="flex gap-1.5">
@@ -220,7 +223,7 @@ const Quiz: React.FC = () => {
           <span className="text-[10px] font-black text-white bg-rose-700/40 px-4 py-2 rounded-xl border border-rose-500/30">النقاط: {score}</span>
         </div>
 
-        <div className="bg-rose-950/90 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden border-b-[8px] border-rose-600 border-r-2 border-l-2 border-white/5">
+        <div className={`${isDark ? 'bg-rose-950/90 text-white border-white/5' : 'bg-rose-50 text-slate-900 border-rose-200'} p-10 rounded-[3rem] shadow-2xl relative overflow-hidden border-b-[8px] border-rose-600 border-r-2 border-l-2`}>
           <h3 className="text-2xl font-black leading-relaxed text-right quran-text">
             {q.question}
           </h3>
@@ -232,20 +235,20 @@ const Quiz: React.FC = () => {
             }`}>
               {q.difficulty === 'easy' ? '⭐ سهل' : q.difficulty === 'medium' ? '⭐⭐ متوسط' : '⭐⭐⭐ صعب'}
             </span>
-            <span className="text-slate-300 font-bold text-[9px]">النقاط: +{q.points}</span>
+            <span className={`${isDark ? 'text-slate-300' : 'text-slate-600'} font-bold text-[9px]`}>النقاط: +{q.points}</span>
           </div>
           <span className="absolute top-2 right-2 text-5xl opacity-5">📿</span>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           {q.options && q.options.length > 0 ? q.options.map((opt, idx) => {
-            let styles = "bg-slate-800 border-2 border-white/5 text-slate-100";
+            let styles = isDark ? "bg-slate-800 border-2 border-white/5 text-slate-100" : "bg-white border-2 border-slate-200 text-slate-800";
             if (showExplanation) {
               if (idx === q.answerIndex) styles = "bg-emerald-800 border-emerald-400 text-white scale-[1.02] shadow-[0_0_25px_rgba(16,185,129,0.3)]";
               else if (idx === selectedOption) styles = "bg-red-900/60 border-red-500 text-red-200 opacity-80 scale-95";
-              else styles = "bg-slate-900/40 border-transparent opacity-30";
+              else styles = isDark ? "bg-slate-900/40 border-transparent opacity-30" : "bg-slate-100/40 border-transparent opacity-30";
             } else {
-              styles += " active:scale-95 shadow-lg hover:border-rose-500/50 hover:bg-slate-700";
+              styles += isDark ? " active:scale-95 shadow-lg hover:border-rose-500/50 hover:bg-slate-700" : " active:scale-95 shadow-md hover:border-rose-300 hover:bg-slate-50";
             }
 
             return (
@@ -255,26 +258,26 @@ const Quiz: React.FC = () => {
                 onClick={() => handleWorshipAnswer(idx)}
                 className={`p-6 rounded-[2rem] text-right font-black transition-all text-lg flex items-center gap-5 ${styles}`}
               >
-                <span className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] shrink-0 ${showExplanation && idx === q.answerIndex ? 'bg-white text-emerald-800' : 'bg-black/30 text-rose-500 font-mono'}`}>
+                <span className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] shrink-0 ${showExplanation && idx === q.answerIndex ? 'bg-white text-emerald-800' : (isDark ? 'bg-black/30' : 'bg-slate-200') + ' text-rose-500 font-mono'}`}>
                   {idx + 1}
                 </span>
                 <span className="flex-1">{opt}</span>
               </button>
             );
           }) : (
-            <div className="text-center text-white p-10 bg-red-900/20 rounded-2xl">
+            <div className={`text-center ${isDark ? 'text-white bg-red-900/20' : 'text-red-900 bg-red-50'} p-10 rounded-2xl`}>
               عذراً، تعذر تحميل الخيارات لهذا السؤال.
             </div>
           )}
         </div>
 
         {showExplanation && (
-          <div className="bg-amber-950/30 border-r-[12px] border-rose-600 p-8 rounded-[2rem] shadow-2xl animate-slide border border-rose-900/20">
+          <div className={`${isDark ? 'bg-amber-950/30 border-rose-900/20' : 'bg-rose-50 border-rose-200'} border-r-[12px] border-rose-600 p-8 rounded-[2rem] shadow-2xl animate-slide border`}>
             <div className="flex items-center gap-3 mb-4">
               <span className="text-3xl">📜</span>
               <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">التوضيح والفائدة</span>
             </div>
-            <p className="text-md text-slate-100 font-bold leading-relaxed quran-text mb-4">{q.explanation}</p>
+            <p className={`text-md ${isDark ? 'text-slate-100' : 'text-slate-800'} font-bold leading-relaxed quran-text mb-4`}>{q.explanation}</p>
             
             {q.relatedVerse && (
               <div className="bg-amber-900/30 border-l-4 border-amber-500 p-3 rounded mb-3">
@@ -306,7 +309,7 @@ const Quiz: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in pb-32 px-2">
-      <div className="flex justify-between items-center bg-black/20 p-5 rounded-2xl border border-white/5">
+      <div className={`flex justify-between items-center ${isDark ? 'bg-black/20' : 'bg-slate-100'} p-5 rounded-2xl border ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
         <div className="flex items-center gap-3">
           <span className="text-xs font-black text-amber-500">س {currentIndex + 1} / {questions.length}</span>
           <div className="flex gap-1.5">
@@ -318,7 +321,7 @@ const Quiz: React.FC = () => {
         <span className="text-[10px] font-black text-white bg-amber-700/40 px-4 py-2 rounded-xl border border-amber-500/30">النقاط: {score}</span>
       </div>
 
-      <div className="bg-emerald-950/90 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden border-b-[8px] border-amber-600 border-r-2 border-l-2 border-white/5">
+      <div className={`${isDark ? 'bg-emerald-950/90 text-white border-white/5' : 'bg-emerald-50 text-slate-900 border-emerald-200'} p-10 rounded-[3rem] shadow-2xl relative overflow-hidden border-b-[8px] border-amber-600 border-r-2 border-l-2`}>
         <h3 className="text-2xl font-black leading-relaxed text-right quran-text">
           {q.question}
         </h3>
@@ -327,13 +330,13 @@ const Quiz: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {q.options && q.options.length > 0 ? q.options.map((opt, idx) => {
-          let styles = "bg-slate-800 border-2 border-white/5 text-slate-100";
+          let styles = isDark ? "bg-slate-800 border-2 border-white/5 text-slate-100" : "bg-white border-2 border-slate-200 text-slate-800";
           if (showExplanation) {
             if (idx === q.answerIndex) styles = "bg-emerald-800 border-emerald-400 text-white scale-[1.02] shadow-[0_0_25px_rgba(16,185,129,0.3)]";
             else if (idx === selectedOption) styles = "bg-red-900/60 border-red-500 text-red-200 opacity-80 scale-95";
-            else styles = "bg-slate-900/40 border-transparent opacity-30";
+            else styles = isDark ? "bg-slate-900/40 border-transparent opacity-30" : "bg-slate-100/40 border-transparent opacity-30";
           } else {
-            styles += " active:scale-95 shadow-lg hover:border-amber-500/50 hover:bg-slate-700";
+            styles += isDark ? " active:scale-95 shadow-lg hover:border-amber-500/50 hover:bg-slate-700" : " active:scale-95 shadow-md hover:border-amber-300 hover:bg-slate-50";
           }
 
           return (
@@ -343,29 +346,30 @@ const Quiz: React.FC = () => {
               onClick={() => handleAnswer(idx)}
               className={`p-6 rounded-[2rem] text-right font-black transition-all text-lg flex items-center gap-5 ${styles}`}
             >
-              <span className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] shrink-0 ${showExplanation && idx === q.answerIndex ? 'bg-white text-emerald-800' : 'bg-black/30 text-amber-500 font-mono'}`}>
+              <span className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] shrink-0 ${showExplanation && idx === q.answerIndex ? 'bg-white text-emerald-800' : (isDark ? 'bg-black/30' : 'bg-slate-200') + ' text-amber-500 font-mono'}`}>
                 {idx + 1}
               </span>
               <span className="flex-1">{opt}</span>
             </button>
           );
         }) : (
-          <div className="text-center text-white p-10 bg-red-900/20 rounded-2xl">
+          <div className={`text-center ${isDark ? 'text-white bg-red-900/20' : 'text-red-900 bg-red-50'} p-10 rounded-2xl`}>
             عذراً، تعذر تحميل الخيارات لهذا السؤال.
           </div>
         )}
       </div>
 
       {showExplanation && (
-        <div className="bg-amber-950/30 border-r-[12px] border-amber-600 p-8 rounded-[2rem] shadow-2xl animate-slide border border-amber-900/20">
+        <div className={`${isDark ? 'bg-amber-950/30 border-amber-900/20' : 'bg-amber-50 border-amber-200'} border-r-[12px] border-amber-600 p-8 rounded-[2rem] shadow-2xl animate-slide border`}>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-3xl">📜</span>
             <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">التوضيح والفائدة</span>
           </div>
-          <p className="text-md text-slate-100 font-bold leading-relaxed quran-text">{q.explanation}</p>
+          <p className={`text-md ${isDark ? 'text-slate-100' : 'text-slate-800'} font-bold leading-relaxed quran-text mb-4`}>{q.explanation}</p>
+          
           <button 
             onClick={nextQuestion}
-            className="mt-10 w-full bg-emerald-700 text-white py-6 rounded-[2rem] font-black shadow-2xl hover:bg-emerald-600 transition-all border-b-6 border-emerald-900 active:scale-95"
+            className="mt-6 w-full bg-emerald-700 text-white py-6 rounded-[2rem] font-black shadow-2xl hover:bg-emerald-600 transition-all border-b-6 border-emerald-900 active:scale-95"
           >
             {currentIndex === questions.length - 1 || lives <= 0 ? 'رؤية ميزان الدرجات' : 'السؤال التالي ⮕'}
           </button>

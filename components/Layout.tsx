@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppTab, User } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 interface LayoutProps {
   activeTab: AppTab;
@@ -10,40 +11,15 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ activeTab, setActiveTab, user, children }) => {
-  const getInitialTheme = (): 'dark' | 'light' => {
-    if (typeof window === 'undefined') return 'dark';
-    const stored = window.localStorage.getItem('noor_theme_mode');
-    if (stored === 'light' || stored === 'dark') return stored;
-    return 'dark';
-  };
-
-  const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
+  const { theme, toggleTheme } = useTheme();
   const [showNavMenu, setShowNavMenu] = useState(false);
-
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-noor-theme', theme);
-      window.localStorage.setItem('noor_theme_mode', theme);
-      // Apply theme to body
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
 
   const navItems = [
     { tab: AppTab.DASHBOARD, icon: '🏠', label: 'الرئيسية', color: 'emerald' },
     { tab: AppTab.QURAN, icon: '📖', label: 'القرآن', color: 'blue' },
     { tab: AppTab.AZKAR, icon: '📿', label: 'الأذكار', color: 'amber' },
-    { tab: AppTab.TASME_A, icon: '🎙️', label: 'التسميع', color: 'purple' },
-    { tab: AppTab.ADHAN, icon: '📢', label: 'الأذان', color: 'red' },
-    { tab: AppTab.PRAYER_TIMES, icon: '🕌', label: 'الصلاة', color: 'green' }
+    { tab: AppTab.PRAYER_TIMES, icon: '🕌', label: 'الصلاة', color: 'green' },
+    { tab: AppTab.DAILY_MISSIONS_AND_WIRDS, icon: '⭐', label: 'المهمات', color: 'purple' }
   ];
 
   const getDynamicClasses = () => {
@@ -157,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ activeTab, setActiveTab, user, children
       </header>
 
       {/* Main Content Area - Fully Responsive */}
-      <main className={`flex-1 w-full overflow-y-auto overflow-x-hidden scroll-smooth transition-all duration-300 pb-20 sm:pb-28 ${
+      <main className={`flex-1 w-full overflow-y-auto overflow-x-hidden scroll-smooth transition-all duration-300 pb-32 sm:pb-40 ${
         theme === 'dark' 
           ? 'bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950' 
           : 'bg-gradient-to-b from-green-50 via-slate-50 to-green-50'

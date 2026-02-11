@@ -65,7 +65,6 @@ export enum AppTab {
   ZAKAT = 'zakat',
   HAJJ = 'hajj',
   PRAYER_TIMES = 'prayer_times',
-  ADHAN = 'adhan', // FIX: New Adhan section
   FORTY_HADITH = 'forty_hadith',
   HISN_ALMUSLIM = 'hisn_almuslim',
   RAMADAN_SPECIAL = 'ramadan_special',
@@ -74,7 +73,7 @@ export enum AppTab {
   TEN_DAYS_SPECIAL = 'ten_days_special',
   RAMADAN_REMINDERS = 'ramadan_reminders',
   TASME_A = 'tasme_a', // FIX: New Tasme'a section for Quran dictation
-  DAILY_WIRD = 'daily_wird' // FIX: New daily Wird section for tracking
+  DAILY_MISSIONS_AND_WIRDS = 'daily_missions_and_wirds' // NEW: Daily missions and optional practices
 }
 
 export interface Reciter {

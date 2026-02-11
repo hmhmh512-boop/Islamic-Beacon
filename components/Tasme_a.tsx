@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FULL_SURAHS } from '../constants';
-import microphoneRecorder from '../services/microphoneRecorder';
-import localAudioManager from '../services/localAudioManager';
+import nativeAudioRecorderService from '../services/nativeAudioRecorderService';
+import enhancedAudioPlayerService from '../services/enhancedAudioPlayerService';
+import tassemCorrectorService from '../services/tassemCorrectorService';
 import offlineStorage from '../services/offlineStorage';
 import { useTheme } from '../context/ThemeContext';
 
@@ -11,6 +12,8 @@ interface RecordingMetadata {
   duration: number;
   surahId?: number;
   surahName?: string;
+  score?: number; // Correction score
+  isCorrect?: boolean; // Whether it passed correction
 }
 
 const Tasme_a: React.FC = () => {
@@ -25,6 +28,8 @@ const Tasme_a: React.FC = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [recordedText, setRecordedText] = useState('');
 
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -94,16 +99,24 @@ const Tasme_a: React.FC = () => {
   const handleStartRecording = async () => {
     try {
       setErrorMessage('');
-      const success = await microphoneRecorder.startRecording(`tasme_${selectedSurah.id}_${Date.now()}`);
-
-      if (!success) {
-        setErrorMessage('فشل في الوصول إلى الميكروفون. تأكد من الأذونات.');
+      
+      // Request permissions first
+      const hasPermission = await nativeAudioRecorderService.requestPermission();
+      if (!hasPermission) {
+        setErrorMessage('تم رفض أذونات الميكروفون. يرجى منح الأذونات من إعدادات التطبيق.');
         return;
       }
 
-      setIsRecording(true);
-      setRecordingTime(0);
-      setPermissionGranted(true);
+      const recordingId = `tasme_${selectedSurah.id}_${Date.now()}`;
+      const success = await nativeAudioRecorderService.startRecording(recordingId);
+
+      if (success) {
+        setIsRecording(true);
+        setRecordingTime(0);
+        setPermissionGranted(true);
+      } else {
+        setErrorMessage('فشل في بدء التسجيل. حاول مجدداً.');
+      }
     } catch (error) {
       console.error('Error starting recording:', error);
       setErrorMessage('خطأ في بدء التسجيل');
@@ -115,13 +128,13 @@ const Tasme_a: React.FC = () => {
    */
   const handleStopRecording = async () => {
     try {
-      const recordingId = await microphoneRecorder.stopRecording();
+      const recording = await nativeAudioRecorderService.stopRecording();
 
-      if (recordingId) {
+      if (recording) {
         // Save metadata
         const metadata: RecordingMetadata = {
-          id: recordingId,
-          timestamp: Date.now(),
+          id: recording.id,
+          timestamp: recording.timestamp,
           duration: recordingTime,
           surahId: selectedSurah.id,
           surahName: selectedSurah.name,
@@ -147,28 +160,35 @@ const Tasme_a: React.FC = () => {
   const handlePlayRecording = async (recordingId: string) => {
     try {
       if (playingId === recordingId) {
-        microphoneRecorder.releaseMicrophone();
+        // Stop playback
+        await nativeMediaPlayerService.stop(recordingId);
         setPlayingId(null);
         return;
       }
 
-      const recording = await microphoneRecorder.getRecording(recordingId);
-      if (recording) {
-        // Play using HTML5 Audio with data URL
-        const blob = new Blob([recording.audio], { type: 'audio/webm' });
-        const url = URL.createObjectURL(blob);
-
-        if (audioRef.current) {
-          audioRef.current.src = url;
-          audioRef.current.play();
-          setPlayingId(recordingId);
-
-          audioRef.current.onended = () => {
-            setPlayingId(null);
-            URL.revokeObjectURL(url);
-          };
-        }
+      const recording = nativeAudioRecorderService.getRecording(recordingId);
+      if (!recording) {
+        setErrorMessage('لم يتم العثور على التسجيل');
+        return;
       }
+
+      // Stop any currently playing recording
+      if (playingId) {
+        await nativeMediaPlayerService.stop(playingId);
+      }
+
+      // Play the recording using native MediaPlayer
+      await nativeMediaPlayerService.play(
+        recordingId,
+        recording.filePath,
+        undefined,
+        () => {
+          setPlayingId(null);
+        }
+      );
+
+      setPlayingId(recordingId);
+      setErrorMessage('');
     } catch (error) {
       console.error('Error playing recording:', error);
       setErrorMessage('خطأ في تشغيل التسجيل');
@@ -180,10 +200,12 @@ const Tasme_a: React.FC = () => {
    */
   const handleDeleteRecording = async (recordingId: string) => {
     try {
-      await microphoneRecorder.deleteRecording(recordingId);
-      const newRecordings = recordings.filter((r) => r.id !== recordingId);
-      setRecordings(newRecordings);
-      localStorage.setItem('tasme_recordings', JSON.stringify(newRecordings));
+      const success = await nativeAudioRecorderService.deleteRecording(recordingId);
+      if (success) {
+        const newRecordings = recordings.filter((r) => r.id !== recordingId);
+        setRecordings(newRecordings);
+        localStorage.setItem('tasme_recordings', JSON.stringify(newRecordings));
+      }
     } catch (error) {
       console.error('Error deleting recording:', error);
       setErrorMessage('خطأ في حذف التسجيل');
